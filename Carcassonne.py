@@ -1,27 +1,35 @@
 
 class Tile:
-	def __init__(self,features,links):
-		pass
-		"""
-		###      u0  u1  u2      
+	def __init__(self,index):
+		if index == 0:
 		###    ---------------   
 		###    |ccccccccccccc|   
-		### l2 |   ccccccc   | r0 
+		###    |   ccccccc   | 
 		###    |             |   
-		### l1 |rrrrrrrrrrrrr| r1 
+		###    |rrrrrrrrrrrrr|  
 		###    |             |   
-		### l0 |             | r2
-		###    ---------------   
-		###      b2  b1  b0 
-		###     
-		### f = field
-		### c = city
-		### r = road
-		### m = monastery
-		### features = [u0,u1,u2,l0,l1,l2,r0,r1,r2,b0, b1, b2]  
-		###             f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11
-		### links = [(f1),(f4,f7),()] 
-		"""
+		###    |             |  
+		###    ---------------  
+		self.rotation = 0 
+		self.quick_features = {u:'c',r:'r',d:'f',l:'r'}
+		self.features = {u:'c',ul:,r:'r',d:'f',l:'r'}
+
+	def rotate_left(self):
+
+	def get_features(self,quick=True,rotations=0):
+		if quick:
+			if rotations == 0:
+				return quick_features
+			elif rotations = 1:
+				temp_features = {u:self.quick_features[l],r:self.quick_features[u],d:self.quick_features[r],l:self.quick_features[d]}
+			elif rotations = 2:
+				temp_features = {u:self.quick_features[d],r:self.quick_features[l],d:self.quick_features[u],l:self.quick_features[r]}
+			elif rotations = 3:
+				temp_features = {u:self.quick_features[r],r:self.quick_features[d],d:self.quick_features[l],l:self.quick_features[u]}
+			return temp_features
+		else:
+			pass
+
 
 
 class City:
@@ -73,6 +81,20 @@ class Field:
 	def __str__(self):
 		return "Field" + str(self.index) + ",meeples" + str(self.meeples) + ",cities" + str(self.contacts)
 
+class Monastery:
+	def __init__(self,index,meeples,openings_count):
+		self.index = index
+		self.meeples = meeples
+		self.openings_count = openings_count
+		self.feature = 'm'
+		self.complete = False
+
+	def get_score(self):
+		return 9 - openings_count
+
+	def __str__(self):
+		return "Monastery" + str(self.index) + ",meeples" + str(self.meeples) + ",points" + str(self.get_score())
+
 class Player:
 	def __init__(self,meeples,index):
 		self.index = index
@@ -84,19 +106,19 @@ class Player:
 		return "Player" + str(self.index) + ",meeples" +  str(self.meeples) + ",score" +  str(self.score) + ",virtual_score" +  str(self.virtual_score)
 
 class Board_spot:
-	def __init__(self
-				,up=None
-				,right=None
-				,down=None
-				,left=None
-				,up_right=None
-				,up_left=None
-				,right_up=None
-				,right_down=None
-				,down_right=None
-				,down_left=None
-				,left_up=None
-				,left_down=None):
+	def __init__(self,u=None,r=None,d=None,l=None,ur=None,ul=None,ru=None,rd=None,dr=None,dl=None,lu=None,ld=None):
+		"""
+		###      ur  u   ul      
+		###    ---------------   
+		###    |             |   
+		### lu |             | ru 
+		###    |             |   
+		###  l |             | r 
+		###    |             |   
+		### ld |             | rd
+		###    ---------------   
+		###      dl  d    dr 
+		"""
 		self.up=up
 		self.right=right
 		self.down=down
