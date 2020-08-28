@@ -2,7 +2,7 @@ from collections import defaultdict
 
 
 class City:
-	def __init__(self,index,meeples,openings_count,points=1,contacts=[]):
+	def __init__(self,meeples,openings_count,index=None,points=1,contacts=[]):
 		self.index = index
 		self.points = points
 		self.meeples = meeples
@@ -22,7 +22,7 @@ class City:
 
 
 class Road:
-	def __init__(self,index,meeples,openings_count,points=1):
+	def __init__(self,meeples,openings_count,index=None,points=1):
 		self.index = index
 		self.points = points
 		self.meeples = meeples
@@ -37,7 +37,7 @@ class Road:
 		return "Road" + str(self.index) + ",meeples" + str(self.meeples) + ",openings" + str(self.openings_count)
 
 class Field:
-	def __init__(self,index,meeples,contacts=[]):
+	def __init__(self,meeples,index=None,contacts=[]):
 		self.index = index
 		self.feature = 'f'
 		self.meeples = meeples
@@ -87,6 +87,7 @@ class Carcassonne:
 		self.rotation_mappings = {1:{'u':'l','r':'u','d':'r','l':'d','ul':'ld','ur':'lu','ru':'ul','rd':'ur','dl':'rd','dr':'ru','lu':'dl','ld':'dr'},
 								2:{'u':'d','r':'l','d':'u','l':'r','ul':'dr','ur':'dl','ru':'ld','rd':'lu','dl':'ur','dr':'ul','lu':'rd','ld':'ru'},
 								3:{'u':'r','r':'d','d':'l','l':'u','ul':'ru','ur':'rd','ru':'dr','rd':'dl','dl':'lu','dr':'ld','lu':'ul','ld':'ur'}}
+		self.adjacent_mappings = {'u':'d','r':'l','d':'u','l':'r','ul':'dr','ur':'dl','ru':'lu','rd':'ld','dl':'ur','dr':'ul','lu':'ru','ld':'rd'}
 		self.board = defaultdict(lambda:defaultdict(lambda:None))
 		"""
 		###      ur  u   ul      
@@ -120,10 +121,19 @@ class Carcassonne:
 						###    |             |   
 						###    |             |  
 						###    ---------------
-						2:{'u':'c','r':'c','d':'f','l':'f'}
+						2:{'u':'c','r':'c','d':'f','l':'f'},
 						###    ---------------   
 						###    |ccccccccccccc|   
 						###    |   cccccccccc| 
+						###    |       cccccc|   
+						###    |         cccc|  
+						###    |           cc|   
+						###    |            c|  
+						###    ---------------
+						3:{'u':'c','r':'c','d':'f','l':'f'}
+						###    ---------------   
+						###    |ccccccccccccc|   
+						###    |   ccccccc.cc| 
 						###    |       cccccc|   
 						###    |         cccc|  
 						###    |           cc|   
@@ -169,8 +179,9 @@ class Carcassonne:
 
 		else: print("ERROR: create_feature method received a wrong feature_type")
 
-		self.board[location].update({opening:feature for opening in openings})
-		print("Created feature ", feature)
+		for opening in openings:
+			self.board[self.get_adjacent_locations(location,opening)].update({self.adjacent_mappings[opening]:feature})
+			print("Board updated, loc: " + str(self.get_adjacent_locations(location,opening)) + ", side: " + str(self.adjacent_mappings[opening]))
 		return feature
 
 
@@ -194,8 +205,20 @@ class Carcassonne:
 	def mix_features(self,feature1,feature2):
 		pass
 
+	def get_adjacent_locations(self,location,side):
+		if side in ['u','ur','ul']:
+			return (location[0],location[1]+1)
+		elif side in ['r','ru','rd']:
+			return (location[0]+1,location[1])
+		elif side in ['d','dr','dl']:
+			return (location[0],location[1]-1)
+		elif side in ['l','lu','ld']:
+			return (location[0]-1,location[1])
+
 	def play_tile(self,tile_index,rotations,location,meeples,meeple_feature=None,meeple_feature_index=None):
 		tile_features = self.get_tile_features(tile_index,rotations)
+		created_cities = []
+		created_fields = []
 		for feature_type,links in tile_features.items():
 			if feature_type == 'c':
 				for feature_index,openings in enumerate(links):
@@ -204,7 +227,8 @@ class Carcassonne:
 					else:
 						meeples = self.no_meeples
 					if sum([self.board[location][opening] == None for opening in openings]) == len(openings):
-						self.create_feature(feature_type=feature_type,location=location,meeples=meeples,openings=openings)
+						city = self.create_feature(feature_type=feature_type,location=location,meeples=meeples,openings=openings)
+						created_cities.append(city)
 
 			if feature_type == 'r':
 				for feature_index,openings in enumerate(links):
@@ -222,12 +246,15 @@ class Carcassonne:
 					else:
 						meeples = self.no_meeples
 					if sum([self.board[location][opening] == None for opening in openings]) == len(openings):
-						self.create_feature(feature_type=feature_type,location=location,meeples=meeples,openings=openings)
-
+						field = self.create_feature(feature_type=feature_type,location=location,meeples=meeples,openings=openings)
+						created_fields.append(field)
+			
 			if feature_type == 'cf':
 				for contacts in tile_features['cf']:
-					self.city_field_contact(self.board[location][tile_features['c'][contacts[0]][0]],
-											self.board[location][tile_features['f'][contacts[1]][0]])
+					self.city_field_contact(created_cities[contacts[0]],created_fields[contacts[1]])
+			
+
+
 
 
 
@@ -235,9 +262,7 @@ class Carcassonne:
 
 
 Game = Carcassonne()
-print(Game.board[(0,0)]['u'])
-print(Game.board[(0,0)]['l'])
-print(Game.board[(0,0)]['d'])
+print(Game.board[(0,1)]['d'])
 
 
 
