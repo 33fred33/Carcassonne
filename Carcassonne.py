@@ -1,35 +1,4 @@
-
-class Tile:
-	def __init__(self,index):
-		if index == 0:
-		###    ---------------   
-		###    |ccccccccccccc|   
-		###    |   ccccccc   | 
-		###    |             |   
-		###    |rrrrrrrrrrrrr|  
-		###    |             |   
-		###    |             |  
-		###    ---------------  
-		self.rotation = 0 
-		self.quick_features = {u:'c',r:'r',d:'f',l:'r'}
-		self.features = {u:'c',ul:,r:'r',d:'f',l:'r'}
-
-	def rotate_left(self):
-
-	def get_features(self,quick=True,rotations=0):
-		if quick:
-			if rotations == 0:
-				return quick_features
-			elif rotations = 1:
-				temp_features = {u:self.quick_features[l],r:self.quick_features[u],d:self.quick_features[r],l:self.quick_features[d]}
-			elif rotations = 2:
-				temp_features = {u:self.quick_features[d],r:self.quick_features[l],d:self.quick_features[u],l:self.quick_features[r]}
-			elif rotations = 3:
-				temp_features = {u:self.quick_features[r],r:self.quick_features[d],d:self.quick_features[l],l:self.quick_features[u]}
-			return temp_features
-		else:
-			pass
-
+from collections import defaultdict
 
 
 class City:
@@ -105,8 +74,20 @@ class Player:
 	def __str__(self):
 		return "Player" + str(self.index) + ",meeples" +  str(self.meeples) + ",score" +  str(self.score) + ",virtual_score" +  str(self.virtual_score)
 
-class Board_spot:
-	def __init__(self,u=None,r=None,d=None,l=None,ur=None,ul=None,ru=None,rd=None,dr=None,dl=None,lu=None,ld=None):
+class Carcassonne:
+	def __init__(self,players=2,starting_meeples=(7,7),tile_stack=None):
+		self.no_meeples = [0 for _ in range(players)]
+		self.new_meeple = [[0 if p!=i else 1 for p in range(players)] for i in range(players)]
+		self.city_count,self.road_count,self.field_count,self.monastery_count = 0,0,0,0
+		self.cities = {}
+		self.players={i:Player(meeples=starting_meeples[i],index=i) for i in range(players)}
+		self.sides=('u','r','d','l')
+		self.feature_types=('c','r','f','m')
+		self.links=('u','r','d','l','ul','ur','ru','rd','dl','dr','lu','ld')
+		self.rotation_mappings = {1:{'u':'l','r':'u','d':'r','l':'d','ul':'ld','ur':'lu','ru':'ul','rd':'ur','dl':'rd','dr':'ru','lu':'dl','ld':'dr'},
+								2:{'u':'d','r':'l','d':'u','l':'r','ul':'dr','ur':'dl','ru':'ld','rd':'lu','dl':'ur','dr':'ul','lu':'rd','ld':'ru'},
+								3:{'u':'r','r':'d','d':'l','l':'u','ul':'ru','ur':'rd','ru':'dr','rd':'dl','dl':'lu','dr':'ld','lu':'ul','ld':'ur'}}
+		self.board = defaultdict(lambda:defaultdict(lambda:None))
 		"""
 		###      ur  u   ul      
 		###    ---------------   
@@ -119,61 +100,79 @@ class Board_spot:
 		###    ---------------   
 		###      dl  d    dr 
 		"""
-		self.up=up
-		self.right=right
-		self.down=down
-		self.left=left
-		self.up_right=up_right
-		self.up_left=up_right
-		self.right_up=right_up
-		self.right_down=right_down
-		self.down_right=down_right
-		self.down_left=down_left
-		self.left_up=left_up
-		self.left_down=left_down
 
-class Carcassonne:
-	def __init__(self,players=2,starting_meeples=(7,7),tile_stack=None):
-		self.no_meeples = [0 for _ in range(players)]
-		self.new_meeple = [[0 if p!=i else 1 for p in range(players)] for i in range(players)]
-		self.city_count,self.road_count,self.field_count,self.monastery_count = 0,0,0,0
-		self.cities = {}
-		self.board = {}
-		self.players={i:Player(meeples=starting_meeples[i],index=i) for i in range(players)}
+		#Tile database
+		self.tile_sides = {0:{'u':'c','r':'r','d':'f','l':'r'},
+						###    ---------------   
+						###    |ccccccccccccc|   
+						###    |   ccccccc   | 
+						###    |             |   
+						###    |rrrrrrrrrrrrr|  
+						###    |             |   
+						###    |             |  
+						###    --------------- 
+						1:{'u':'c','r':'f','d':'f','l':'f'},
+						###    ---------------   
+						###    |ccccccccccccc|   
+						###    |   ccccccc   | 
+						###    |             |   
+						###    |             |  
+						###    |             |   
+						###    |             |  
+						###    ---------------
+						2:{'u':'c','r':'c','d':'f','l':'f'}
+						###    ---------------   
+						###    |ccccccccccccc|   
+						###    |   cccccccccc| 
+						###    |       cccccc|   
+						###    |         cccc|  
+						###    |           cc|   
+						###    |            c|  
+						###    ---------------
+						}
+		self.tile_features = {0:{'c':[['u']],'r':[['r','l']],'f':[['ld','d','rd'],['lu','ru']],'m':[[]],'cf':[[0,1]]},
+							1:{'c':[['u']],'r':[[]],'f':[['l','d','r']],'m':[[]],'cf':[[0,0]]},
+							2:{'c':[['u','r']],'r':[[]],'f':[['l','d']],'m':[[]],'cf':[[]]}}
+		#'cf' needs to be last, in it: first city index, then field index
 
-		#Play starting tile
-		new_city = self.create_city(meeples=self.no_meeples,openings_count=1)
-		new_field1 = self.create_field(meeples=self.no_meeples)
-		self.city_field_contact(new_city,new_field1)
-		new_field2 = self.create_field(meeples=self.no_meeples)
-		new_road = self.create_road(meeples=self.no_meeples,openings_count=2)
-		self.board.update({(-1,0):Board_spot(left=new_road,left_up=new_field1,left_down=new_field2)
-							,(0,-1):Board_spot(up=new_field2,up_left=new_field2,up_right=new_field2)
-							,(1,0):Board_spot(right=new_road,right_up=new_field1,right_down=new_field2)
-							,(0,1):Board_spot(down=new_city)})
+	#Play starting tile
+		self.play_tile(tile_index=0,rotations=0,location=(0,0),meeples=self.no_meeples)
 
+	def get_tile_sides(self,tile_index,rotations=0):
+		if rotations==0:
+			return self.tile_sides[tile_index]
+		else:
+			return {self.rotation_mappings[rotations][key]:value for key, value in self.tile_sides[tile_index].items()}
 
-	def create_city(self,meeples,openings_count=None):
-		feature = City(index=self.city_count,meeples=meeples,openings_count=openings_count)
-		self.cities[self.city_count] = feature
-		self.city_count = self.city_count + 1
+	def get_tile_features(self,tile_index,rotations=0):
+		if rotations == 0:
+			return self.tile_features[tile_index]
+		else:
+			return {key:[[self.rotation_mappings[rotations][i] if key!='cf' else i for i in link] for link in value] for key,value in self.tile_features[tile_index].items() }
+
+	def create_feature(self,feature_type,location,meeples,openings):
+		if feature_type == 'c':
+			feature = City(index=self.city_count,meeples=meeples,openings_count=len(openings))
+			self.cities[self.city_count] = feature
+			self.city_count = self.city_count + 1
+
+		elif feature_type == 'r':
+			feature = Road(index=self.road_count,meeples=meeples,openings_count=len(openings))
+			self.road_count = self.road_count + 1
+
+		elif feature_type == 'f':
+			feature = Field(index=self.field_count,meeples=meeples)
+			self.field_count = self.field_count + 1
+
+		elif feature_type == 'm':
+			pass
+
+		else: print("ERROR: create_feature method received a wrong feature_type")
+
+		self.board[location].update({opening:feature for opening in openings})
 		print("Created feature ", feature)
 		return feature
 
-	def create_road(self,meeples,openings_count=None):
-		feature = Road(index=self.road_count,meeples=meeples,openings_count=openings_count)
-		self.road_count = self.road_count + 1
-		print("Created feature ", feature)
-		return feature
-
-	def create_field(self,meeples):
-		feature = Field(index=self.field_count,meeples=meeples)
-		self.field_count = self.field_count + 1
-		print("Created feature ", feature)
-		return feature
-
-	def create_monastery(self,meeples,openings_count=None):
-		pass
 
 	def city_field_contact(self,city,field):
 		self.update_feature_contacts(city,new_contacts = [field.index])
@@ -195,12 +194,51 @@ class Carcassonne:
 	def mix_features(self,feature1,feature2):
 		pass
 
+	def play_tile(self,tile_index,rotations,location,meeples,meeple_feature=None,meeple_feature_index=None):
+		tile_features = self.get_tile_features(tile_index,rotations)
+		for feature_type,links in tile_features.items():
+			if feature_type == 'c':
+				for feature_index,openings in enumerate(links):
+					if meeple_feature == feature_type and meeple_feature_index == feature_index:
+						meeples = meeples
+					else:
+						meeples = self.no_meeples
+					if sum([self.board[location][opening] == None for opening in openings]) == len(openings):
+						self.create_feature(feature_type=feature_type,location=location,meeples=meeples,openings=openings)
+
+			if feature_type == 'r':
+				for feature_index,openings in enumerate(links):
+					if meeple_feature == feature_type and meeple_feature_index == feature_index:
+						meeples = meeples
+					else:
+						meeples = self.no_meeples
+					if sum([self.board[location][opening] == None for opening in openings]) == len(openings):
+						self.create_feature(feature_type=feature_type,location=location,meeples=meeples,openings=openings)
+
+			if feature_type == 'f':
+				for feature_index,openings in enumerate(links):
+					if meeple_feature == feature_type and meeple_feature_index == feature_index:
+						meeples = meeples
+					else:
+						meeples = self.no_meeples
+					if sum([self.board[location][opening] == None for opening in openings]) == len(openings):
+						self.create_feature(feature_type=feature_type,location=location,meeples=meeples,openings=openings)
+
+			if feature_type == 'cf':
+				for contacts in tile_features['cf']:
+					self.city_field_contact(self.board[location][tile_features['c'][contacts[0]][0]],
+											self.board[location][tile_features['f'][contacts[1]][0]])
+
+
+
+
+
+
 Game = Carcassonne()
-print(Game.board)
-print(Game.board[(0,1)])
-print(Game.board[(0,1)].down)
-print(Game.board[(-1,0)].left)
-print(Game.players)
+print(Game.board[(0,0)]['u'])
+print(Game.board[(0,0)]['l'])
+print(Game.board[(0,0)]['d'])
+
 
 
 
