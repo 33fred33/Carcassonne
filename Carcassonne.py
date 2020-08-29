@@ -76,24 +76,28 @@ class Player:
 		return "Player" + str(self.index) + ",meeples" +  str(self.meeples) + ",score" +  str(self.score) + ",virtual_score" +  str(self.virtual_score)
 
 class Action:
-	def __init__(self,tile,location,rotation,meeples={}):
+	def __init__(self,tile,location,rotation,meeples={},meeple_feature=None):
 		self.tile = tile
 		self.location = location
 		self.rotation = rotation
 		self.meeples = meeples
+		self.meeple_feature = meeple_feature
 
 	def __str__(self):
-		return 'location' + str(self.location) + 'rotation' + str(self.rotation) + 'meeples' + str(self.meeples)
+		return 'Action. location:' + str(self.location) + ' ,rotation:' + str(self.rotation) + ' ,meeples:' + str(self.meeples)+ ' ,meeple_feature:' + str(self.meeples)
 
 class Tile:
-	def __init__(self,type,features,monastery=False,shield=False):
+	def __init__(self,type,features,monastery=None,shield=False):
 		self.type = type
 		self.features = features
 		self.shield = shield
 		self.monastery = monastery
 
+	def __str__(self):
+		return 'Tile. type:' + str(self.type)
+
 class Carcassonne:
-	def __init__(self,players=2,starting_meeples={0:7,1:7},tile_copies={0:4,1:3,2:2,3:3,4:3}):
+	def __init__(self,players=2,starting_meeples={0:7,1:7},tile_copies={0:4,1:3,2:2,3:3,4:3,5:5,6:3}):
 		self.players = {i:Player(meeples=starting_meeples[i],index=i) for i in range(players)}
 		self.player_turn = 0
 		self.city_count,self.road_count,self.field_count,self.monastery_count = 0,0,0,0
@@ -142,7 +146,8 @@ class Carcassonne:
 					field2 = Field()
 					city.contacts.append(field2)
 					field2.contacts.append(city)
-					temp_tile = {'u':city,'r':road,'d':field1,'l':road,'ru':field2,'rd':field1,'lu':field2,'ld':field1}
+					features = {'u':city,'r':road,'d':field1,'l':road,'ru':field2,'rd':field1,'lu':field2,'ld':field1}
+					temp_tile = Tile(type=tile_type,features = features)
 					temp_tiles.append(temp_tile)
 
 			elif tile_type == 1:
@@ -159,7 +164,8 @@ class Carcassonne:
 					field = Field()
 					city.contacts.append(field)
 					field.contacts.append(city)
-					temp_tile = {'u':city,'r':city,'d':field,'l':field}
+					features = {'u':city,'r':city,'d':field,'l':field}
+					temp_tile = Tile(type=tile_type,features = features)
 					temp_tiles.append(temp_tile)
 
 			elif tile_type == 2:
@@ -177,7 +183,8 @@ class Carcassonne:
 					road = Road(openings_count=2)
 					city.contacts.append(field)
 					field.contacts.append(city)
-					temp_tile = {'u':city,'r':city,'d':field,'l':field}
+					features = {'u':city,'r':city,'d':field,'l':field}
+					temp_tile = Tile(type=tile_type,features = features,shield=True)
 					temp_tiles.append(temp_tile)
 
 			elif tile_type == 3:
@@ -196,7 +203,8 @@ class Carcassonne:
 					road = Road(openings_count=2)
 					city.contacts.append(field1)
 					field1.contacts.append(city)
-					temp_tile = {'u':city,'r':road,'d':road,'l':field1,'dr':field2,'dl':field1,'ru':field1,'rd':field2}
+					features = {'u':city,'r':road,'d':road,'l':field1,'dr':field2,'dl':field1,'ru':field1,'rd':field2}
+					temp_tile = Tile(type=tile_type,features = features)
 					temp_tiles.append(temp_tile)
 
 			elif tile_type == 4:
@@ -215,7 +223,46 @@ class Carcassonne:
 					road = Road(openings_count=2)
 					city.contacts.append(field1)
 					field1.contacts.append(city)
-					temp_tile = {'u':city,'r':field1,'d':road,'l':road,'dr':field1,'dl':field2,'lu':field1,'ld':field2}
+					features = {'u':city,'r':field1,'d':road,'l':road,'dr':field1,'dl':field2,'lu':field1,'ld':field2}
+					temp_tile = Tile(type=tile_type,features = features)
+					temp_tiles.append(temp_tile)
+
+			elif tile_type == 5:
+				###    ---------------   
+				###    |ccccccccccccc|   
+				###    |   ccccccc   | 
+				###    |             |   
+				###    |             |  
+				###    |             |   
+				###    |             |  
+				###    ---------------
+				for copy in range(copies):
+					city = City(points=1,openings_count=1)
+					field = Field()
+					city.contacts.append(field)
+					field.contacts.append(city)
+					features = {'u':city,'r':field,'d':field,'l':field}
+					temp_tile = Tile(type=tile_type,features = features)
+					temp_tiles.append(temp_tile)
+
+			elif tile_type == 6:
+				###    ---------------   
+				###    |ccccccccccccc|   
+				###    |   ccccccc   | 
+				###    |             |   
+				###    |             |  
+				###    |   ccccccc   |   
+				###    |ccccccccccccc|  
+				###    ---------------
+				for copy in range(copies):
+					city1 = City(points=1,openings_count=1)
+					city2 = City(points=1,openings_count=1)
+					field = Field()
+					city1.contacts.append(field)
+					city2.contacts.append(field)
+					field.contacts.extend([city1,city2])
+					features = {'u':city1,'r':field,'d':city2,'l':field}
+					temp_tile = Tile(type=tile_type,features = features)
 					temp_tiles.append(temp_tile)
 
 			self.tile_stack.update({tile_type:temp_tiles})
@@ -223,8 +270,10 @@ class Carcassonne:
 		self.all_tiles = []
 		for tile_type,_ in self.tile_copies.items():
 			self.all_tiles.extend(self.tile_stack[tile_type])
-	#Play starting tile
-		self.play_tile(tile_type=0,rotations=0,location=(0,0))
+
+	def start_game(self):
+		first_action = Action(tile=self.tile_stack[0][0],rotation=0,location=(0,0))
+		self.make_action(first_action)
 
 	def update_feature(self,feature,new_points,new_meeples,new_openings=None):
 		feature.points = feature.points + new_points
@@ -252,12 +301,12 @@ class Carcassonne:
 		elif side in ['l','lu','ld']:
 			return (location[0]-1,location[1])
 
-	def rotate_tile(self,tile,rotations):
-		if rotations == 0:
-			return tile
+	def rotate_features(self,features,rotation):
+		if rotation == 0:
+			return features
 		else:
-			rotated_tile = {self.rotation_mappings[rotations][side]:feature for side,feature in tile.items()}
-			return rotated_tile
+			rotated_features = {self.rotation_mappings[rotation][side]:feature for side,feature in features.items()}
+			return rotated_features
 
 	def get_random_tile(self):
 		return rd.choice(self.all_tiles)
@@ -276,39 +325,37 @@ class Carcassonne:
 			add_location = False
 			rotations_to_add = []
 			for rotation in self.rotations:
-				temp_tile = self.rotate_tile(tile,rotation)
+				temp_tile_features = self.rotate_features(tile.features,rotation)
 				for side in self.main_sides:
 					if features[side] is not None:
-						if temp_tile[side].feature_type == features[side].feature_type:
+						if temp_tile_features[side].feature_type == features[side].feature_type:
 							rotations_to_add.append(rotation)
 							add_location = True
 			if add_location:
 				available_locations[location] = rotations_to_add
 		return available_locations
 
-	def remove_tile(self,tile,tile_type):
-		self.tile_stack[tile_type].remove(tile)
+	def remove_tile(self,tile):
+		self.tile_stack[tile.type].remove(tile)
 		self.all_tiles.remove(tile)
 
-	def play_tile(self,tile_type,rotations,location,meeples={},meeple_feature=None,meeple_feature_index=None):
-		tile = self.tile_stack[tile_type][0]
-		self.remove_tile(tile=tile,tile_type=tile_type)
-		tile = self.rotate_tile(tile,rotations)
-		for side,feature in tile.items():
-			adjacent_location = self.get_adjacent_locations(location,side)
+	def make_action(self,action):
+		self.remove_tile(tile=action.tile)
+		tile_features = self.rotate_features(action.tile.features,action.rotation)
+		for side,feature in tile_features.items():
+			adjacent_location = self.get_adjacent_locations(action.location,side)
 			adjacent_side = self.adjacent_mappings[side]
 			if self.board[adjacent_location][side] is None:
-				#print("adjacent_location",adjacent_location,"adjacent_side",adjacent_side,"board",self.board[adjacent_location][adjacent_side])
 				self.board[adjacent_location].update({adjacent_side:feature})
+
 			
 Game = Carcassonne()
-print(Game.board[(0,1)]['d'])
+Game.start_game()
 tile = Game.get_random_tile()
-print('tile_u: ',tile['u'].feature_type,'tile_r: ',tile['r'].feature_type,'tile_d: ',tile['d'].feature_type,'tile_l: ',tile['l'].feature_type)
-#print(Game.get_available_locations(tile))
+print(tile)
 actions = Game.get_available_actions(tile)
 print('options: ', len(actions))
-print('sample: ', actions[0])
+for action in actions: print(action) 
 
 
 
